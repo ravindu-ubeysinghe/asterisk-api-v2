@@ -1,4 +1,4 @@
-import express, { Application } from 'express';
+import { Application } from 'express';
 import db from 'mongoose';
 
 import authRoutes from 'routes/auth';
