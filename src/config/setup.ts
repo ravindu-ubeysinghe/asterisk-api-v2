@@ -1,7 +1,7 @@
 import { Application } from 'express';
 import db from 'mongoose';
 
-import authRoutes from 'routes/auth';
+import routes from 'routes';
 
 const connectToDb = () => {
     db.connect(
@@ -13,14 +13,9 @@ const connectToDb = () => {
     );
 };
 
-const registerRoutes = (app: Application) => {
-    // Register Routes
-    app.use('/api/user', authRoutes);
-};
-
 const boot = (app: Application) => {
     connectToDb();
-    registerRoutes(app);
+    app.use(routes);
 };
 
 export default boot;
