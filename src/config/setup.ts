@@ -13,15 +13,14 @@ const connectToDb = () => {
     );
 };
 
-const registerRoutes = () => {
-    const app: Application = express();
+const registerRoutes = (app: Application) => {
     // Register Routes
     app.use('/api/user', authRoutes);
 };
 
-const boot = () => {
+const boot = (app: Application) => {
     connectToDb();
-    registerRoutes();
+    registerRoutes(app);
 };
 
 export default boot;
