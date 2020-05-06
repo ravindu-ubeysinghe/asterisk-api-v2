@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Application } from 'express';
 
 import boot from 'config/setup';
 
-boot();
-
-const app = express();
+const app: Application = express();
 app.listen(process.env.PORT || 5000, () => console.log('Server is running'));
+
+boot();
