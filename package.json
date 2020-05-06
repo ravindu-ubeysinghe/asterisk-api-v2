@@ -6,7 +6,7 @@
     "scripts": {
         "build": "rimraf ./build && tsc -p .",
         "prod": "npm run build && ts-node -r tsconfig-paths/register build/app.js",
-        "start": "nodemon -r tsconfig-paths/register src/app.ts",
+        "start": "nodemon",
         "lint": "eslint --ext .js,.ts,.tsx src --color",
         "format": "prettier --write src/**/*.{ts,tsx,scss,css,json}"
     },
