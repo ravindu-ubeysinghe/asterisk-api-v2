@@ -1,10 +1,10 @@
 import express, { Application, Request, Response } from 'express';
 
-import userRoutes from './user';
+import UserController from 'controllers/UserController';
 
 const app: Application = express();
 
-app.use('/api/user', userRoutes);
+app.use('/api/user', UserController);
 
 app.all('*', (req: Request, res: Response) => {
     res.status(404).send('Not Found');
