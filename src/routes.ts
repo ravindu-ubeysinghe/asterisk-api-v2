@@ -1,6 +1,6 @@
 import express, { Application, Request, Response } from 'express';
 
-import UserController from 'controllers/UserController';
+import UserController from 'controllers/user.controller';
 
 const app: Application = express();
 

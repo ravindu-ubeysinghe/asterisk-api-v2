@@ -1,11 +1,10 @@
 import express, { Router, Request, Response } from 'express';
-import { createUser } from 'services/UserService';
-import CreateUserRequest from 'models/User/DataContracts/CreateUserRequest';
+import { createUser } from 'services/user.service';
+import { CreateUserRequest } from 'models/user/user.dataContracts';
 
 const router: Router = express.Router();
 
-router.post('/register', (req: Request, res: Response) => {
-    console.log('here');
+router.post('/register', async (req: Request, res: Response) => {
     const userData: CreateUserRequest = {
         name: req.body.name,
         email: req.body.email,
@@ -20,7 +19,15 @@ router.post('/register', (req: Request, res: Response) => {
             country: req.body.address.country,
         },
     };
-    res.send(createUser(userData));
+
+    try {
+        await res.status(200).send(createUser(userData));
+    } catch (err) {
+        // TODO: Add proper logging after
+        console.log(err);
+        res.status(500).send(err);
+    }
+    // res.send(createUser(userData));
 });
 
 export default router;

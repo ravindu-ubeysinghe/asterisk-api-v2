@@ -1,4 +1,4 @@
-import { Application } from 'express';
+import express, { Application } from 'express';
 import db from 'mongoose';
 
 import routes from 'routes';
@@ -14,7 +14,13 @@ const connectToDb = () => {
 };
 
 const boot = (app: Application) => {
+    // DB
     connectToDb();
+
+    // Middleware
+    app.use(express.json());
+
+    // Mount the routes
     app.use(routes);
 };
 
