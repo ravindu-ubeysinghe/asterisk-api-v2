@@ -1,8 +1,9 @@
 import express, { Application } from 'express';
 import db from 'mongoose';
 import dotenv from 'dotenv';
-
+import morgan from 'morgan';
 import routes from 'routes';
+import { LoggerStream } from 'utils/logger';
 
 const connectToDb = () => {
     db.connect(
@@ -15,16 +16,21 @@ const connectToDb = () => {
 };
 
 const boot = (app: Application) => {
-    // Invoke dotenv
+    /** Invoke dotenv **/
     dotenv.config();
 
-    // DB
+    /** DB **/
     connectToDb();
 
-    // Middleware
+    /** Middleware **/
+
+    // Deal with JSON only
     app.use(express.json());
 
-    // Mount the routes
+    // Use morgan
+    app.use(morgan('combined', { stream: new LoggerStream() }));
+
+    /**  Mount the routes **/
     app.use(routes);
 };
 

@@ -4,6 +4,7 @@ node_modules/
 # temp and build files
 .history/
 build/
+logs/
 
 # env
 .env

@@ -1,5 +1,7 @@
 import { Response } from 'express';
 import { GENERIC_ERROR } from 'constants/index';
+import createError from 'http-errors';
+import { runInNewContext } from 'vm';
 
 const response = () => {};
 
@@ -9,8 +11,8 @@ const response = () => {};
  * @param status
  * @param data
  */
-const success = (res: Response, status: number = 200, data: any): void => {
-    res.status(status).json({ isSuccess: true, status, data });
+const success = (res: Response, status: number = 200, data?: any): void => {
+    res.status(status).json({ isSuccess: true, status, data: data || {} });
 };
 
 /**
