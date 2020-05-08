@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from 'express';
-import { createUser, getUsers } from 'services/user.service';
+import { createUser, getUsers, getUserById } from 'services/user.service';
 import { CreateUserRequest } from 'models/user/user.dataContracts';
 import response from 'utils/response';
 
@@ -9,6 +9,16 @@ router.get('/', async (req: Request, res: Response) => {
     try {
         const users = await getUsers();
         response.success(res, 200, users);
+    } catch (err) {
+        // TODO: Add proper logging after
+        response.error(res, 500, err.message);
+    }
+});
+
+router.get('/:id', async (req: Request, res: Response) => {
+    try {
+        const user = await getUserById(req.params.id);
+        response.success(res, 200, user);
     } catch (err) {
         // TODO: Add proper logging after
         response.error(res, 500, err.message);
