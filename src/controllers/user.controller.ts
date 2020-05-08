@@ -1,6 +1,8 @@
 import express, { Router, Request, Response } from 'express';
 import { createUser } from 'services/user.service';
 import { CreateUserRequest } from 'models/user/user.dataContracts';
+import { RECORD_CREATION_FAILED } from 'constants/index';
+import response from 'utils/response';
 
 const router: Router = express.Router();
 
@@ -20,14 +22,15 @@ router.post('/register', async (req: Request, res: Response) => {
         },
     };
 
+    // Add validator middleware
+
     try {
-        await res.status(200).send(createUser(userData));
+        const createdUser = await createUser(userData);
+        response.success(res, 200, createdUser);
     } catch (err) {
         // TODO: Add proper logging after
-        console.log(err);
-        res.status(500).send(err);
+        response.error(res, 500, err.message);
     }
-    // res.send(createUser(userData));
 });
 
 export default router;

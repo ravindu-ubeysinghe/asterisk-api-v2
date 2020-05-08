@@ -1,5 +1,3 @@
-import { Request, Response } from 'express';
-import db from 'mongoose';
 import User from 'models/user/user.model';
 import { CreateUserRequest } from 'models/user/user.dataContracts';
 
