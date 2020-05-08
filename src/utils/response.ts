@@ -19,8 +19,8 @@ const success = (res: Response, status: number = 200, data?: any): void => {
  * @param status
  * @param message
  */
-const error = (res: Response, status: number = 200, message?: String): void => {
-    res.status(status).json({ isSuccess: false, status, message: message || GENERIC_ERROR });
+const error = (res: Response, status: number = 200, error?: String): void => {
+    res.status(status).json({ isSuccess: false, status, error: error || GENERIC_ERROR });
 };
 
 response.error = error;

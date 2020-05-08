@@ -12,9 +12,18 @@ class UserService {
         }
     };
 
-    static getUserById = async (id: string) => {
+    static getUserById = async (id: String) => {
         try {
-            return await User.find({ _id: id });
+            return await User.findOne({ _id: id });
+        } catch (err) {
+            logger.error(err);
+            throw new Error(err.message);
+        }
+    };
+
+    static getUserByEmailOrPhone = async (email: String, phone: String) => {
+        try {
+            return await User.findOne({ $or: [{ email: email }, { phone: phone }] });
         } catch (err) {
             logger.error(err);
             throw new Error(err.message);

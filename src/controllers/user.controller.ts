@@ -1,9 +1,11 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
+import { check, validationResult } from 'express-validator';
+import bcrypt from 'bcrypt';
 import UserService from 'services/user.service';
 import { CreateUserRequest } from 'models/user/user.dataContracts';
-import { check, validationResult } from 'express-validator';
 import response from 'utils/response';
 import logger from 'utils/logger';
+import { USER_ALREADY_EXISTS } from 'constants/user';
 
 const router: Router = express.Router();
 
@@ -42,16 +44,16 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post(
     '/register',
     [
-        check('name').notEmpty(),
-        check('email').notEmpty().isEmail(),
+        check('name').exists(),
+        check('email').exists().isEmail(),
         check('password').isLength({ min: 6, max: 20 }),
         check('phone').isLength({ min: 8, max: 15 }).isNumeric(),
-        check('address.streetOne').notEmpty(),
+        check('address.streetOne').exists(),
         check('address.streetTwo').optional(),
-        check('address.city').notEmpty(),
-        check('address.postcode').notEmpty(),
-        check('address.state').notEmpty(),
-        check('address.country').notEmpty(),
+        check('address.city').exists(),
+        check('address.postcode').exists(),
+        check('address.state').exists(),
+        check('address.country').exists(),
     ],
     async (req: Request, res: Response, next: NextFunction) => {
         const {
@@ -65,7 +67,7 @@ router.post(
         const userData: CreateUserRequest = {
             name: name,
             email: email,
-            password: password,
+            password: bcrypt.hashSync(password, 10),
             phone: phone,
             address: {
                 streetOne: streetOne,
@@ -78,7 +80,10 @@ router.post(
         };
 
         const errors = validationResult(req);
-        if (errors) return response.error(res, 400, JSON.stringify(errors));
+        if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
+
+        const userAlreadyExists = await UserService.getUserByEmailOrPhone(email, phone);
+        if (userAlreadyExists) return response.error(res, 400, USER_ALREADY_EXISTS);
 
         try {
             const createdUser = await UserService.createUser(userData);
