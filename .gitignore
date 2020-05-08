@@ -1,8 +1,9 @@
 # node modules
 node_modules/
 
-# temp files
+# temp and build files
 .history/
+build/
 
 # env
 .env

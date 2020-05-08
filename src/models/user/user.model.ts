@@ -4,26 +4,26 @@ const userSchema = new db.Schema({
     name: {
         type: String,
         required: true,
-        min: 6,
-        max: 255,
+        minLength: 6,
+        maxLength: 255,
     },
     email: {
         type: String,
         required: true,
-        min: 6,
-        max: 255,
+        minLength: 6,
+        maxLength: 255,
     },
     password: {
         type: String,
         required: true,
-        min: 6,
-        max: 1024,
+        minLength: 6,
+        maxLength: 1024,
     },
     phone: {
         type: Number,
         required: true,
-        min: 6,
-        max: 255,
+        minLength: 8,
+        maxLength: 15,
     },
     address: {
         streetOne: {

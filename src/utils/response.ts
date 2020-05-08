@@ -10,7 +10,7 @@ const response = () => {};
  * @param data
  */
 const success = (res: Response, status: number = 200, data: any): void => {
-    res.status(status).json({ isSuccess: false, status, data });
+    res.status(status).json({ isSuccess: true, status, data });
 };
 
 /**
