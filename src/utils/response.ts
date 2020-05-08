@@ -1,7 +1,5 @@
 import { Response } from 'express';
 import { GENERIC_ERROR } from 'constants/index';
-import createError from 'http-errors';
-import { runInNewContext } from 'vm';
 
 const response = () => {};
 

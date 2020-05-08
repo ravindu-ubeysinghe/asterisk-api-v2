@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import db from 'mongoose';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
+import expressValidator from 'express-validator';
 import routes from 'routes';
 import { LoggerStream } from 'utils/logger';
 
