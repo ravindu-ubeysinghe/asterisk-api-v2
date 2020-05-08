@@ -29,7 +29,7 @@ const logger = createLogger({
 });
 
 export class LoggerStream {
-    write(message: String) {
+    write(message: string) {
         logger.info(message.substring(0, message.lastIndexOf('\n')));
     }
 }

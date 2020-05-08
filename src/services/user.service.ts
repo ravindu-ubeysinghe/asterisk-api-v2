@@ -1,9 +1,11 @@
-import User from 'models/user/user.model';
-import { CreateUserRequest } from 'models/user/user.dataContracts';
+import { Document } from 'mongoose';
+import Service from './Service';
+import User, { IUserDocument, UserType } from 'models/user.model';
 import logger from 'utils/logger';
+import isEmpty from 'lodash/isEmpty';
 
-class UserService {
-    static getUsers = async () => {
+class UserService implements Service<IUserDocument> {
+    get = async (): Promise<IUserDocument[]> => {
         try {
             return await User.find({});
         } catch (err) {
@@ -11,8 +13,7 @@ class UserService {
             throw new Error(err.message);
         }
     };
-
-    static getUserById = async (id: String) => {
+    getById = async (id: string): Promise<IUserDocument | null> => {
         try {
             return await User.findOne({ _id: id });
         } catch (err) {
@@ -20,18 +21,24 @@ class UserService {
             throw new Error(err.message);
         }
     };
+    getByQuery = async (query: Object): Promise<IUserDocument | boolean | null> => {
+        let queryArr: Array<object> = [];
+        for (let [key, value] of Object.entries(query)) {
+            queryArr = [...queryArr, { [key]: value }];
+        }
 
-    static getUserByEmailOrPhone = async (email: String, phone: String) => {
+        if (isEmpty(queryArr)) return false;
+
         try {
-            return await User.findOne({ $or: [{ email: email }, { phone: phone }] });
+            return await User.findOne({ $or: queryArr });
         } catch (err) {
             logger.error(err);
             throw new Error(err.message);
         }
     };
 
-    static createUser = async (data: CreateUserRequest) => {
-        const user = new User({ ...data });
+    create = async (object: UserType): Promise<IUserDocument> => {
+        const user = new User({ ...object });
         try {
             return await user.save();
         } catch (err) {

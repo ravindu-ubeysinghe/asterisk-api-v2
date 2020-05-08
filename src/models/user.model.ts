@@ -1,4 +1,22 @@
-import db from 'mongoose';
+import db, { Document } from 'mongoose';
+
+export type UserType = {
+    name: string;
+    email: string;
+    password: string;
+    phone: Number;
+    address: {
+        streetOne: string;
+        streetTwo?: string;
+        city: string;
+        postcode: string;
+        state: string;
+        country: string;
+    };
+    dateRegistered?: Date;
+};
+
+export interface IUserDocument extends Document, UserType {}
 
 const userSchema = new db.Schema({
     name: {
@@ -56,4 +74,4 @@ const userSchema = new db.Schema({
     },
 });
 
-export default db.model('user', userSchema);
+export default db.model<IUserDocument>('user', userSchema);

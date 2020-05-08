@@ -1,13 +1,14 @@
-import express, { Router, Request, Response, NextFunction } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { check, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import UserService from 'services/user.service';
-import { CreateUserRequest } from 'models/user/user.dataContracts';
+import { UserType } from 'models/user.model';
 import response from 'utils/response';
 import logger from 'utils/logger';
-import { USER_ALREADY_EXISTS } from 'constants/user';
+import { USER_ALREADY_EXISTS, USER_DOES_NOT_EXIST, INVALID_LOGIN } from 'constants/user';
 
 const router: Router = express.Router();
+const userService: UserService = new UserService();
 
 /**
  * Route: /api/users/
@@ -15,7 +16,7 @@ const router: Router = express.Router();
  */
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const users = await UserService.getUsers();
+        const users = await userService.get();
         response.success(res, 200, users);
     } catch (err) {
         logger.error(err);
@@ -29,13 +30,36 @@ router.get('/', async (req: Request, res: Response) => {
  */
 router.get('/:id', async (req: Request, res: Response) => {
     try {
-        const user = await UserService.getUserById(req.params.id);
+        const user = await userService.getById(req.params.id);
         response.success(res, 200, user);
     } catch (err) {
         logger.error(err);
         response.error(res, 500, err.message);
     }
 });
+
+/**
+ * Route: /api/users/login
+ * Logins in a user
+ */
+router.post(
+    '/login',
+    [check('email').exists().isEmail(), check('password').isLength({ min: 6, max: 20 })],
+    async (req: Request, res: Response) => {
+        const { email, password } = req.body;
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
+
+        const user = await userService.getByQuery({ email });
+        if (!user) return response.error(res, 400, USER_DOES_NOT_EXIST);
+
+        const validLogin = typeof user !== 'boolean' ? bcrypt.compareSync(password, user.password) : false;
+        if (!validLogin) return response.error(res, 401, INVALID_LOGIN);
+
+        response.success(res, 200, user);
+    },
+);
 
 /**
  * Route: /api/users/register
@@ -55,7 +79,7 @@ router.post(
         check('address.state').exists(),
         check('address.country').exists(),
     ],
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response) => {
         const {
             name,
             email,
@@ -64,7 +88,13 @@ router.post(
             address: { streetOne, streetTwo, city, postcode, state, country },
         } = req.body;
 
-        const userData: CreateUserRequest = {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
+
+        const userAlreadyExists = await userService.getByQuery({ email, phone });
+        if (userAlreadyExists) return response.error(res, 400, USER_ALREADY_EXISTS);
+
+        const userData: UserType = {
             name: name,
             email: email,
             password: bcrypt.hashSync(password, 10),
@@ -79,15 +109,9 @@ router.post(
             },
         };
 
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
-
-        const userAlreadyExists = await UserService.getUserByEmailOrPhone(email, phone);
-        if (userAlreadyExists) return response.error(res, 400, USER_ALREADY_EXISTS);
-
         try {
-            const createdUser = await UserService.createUser(userData);
-            response.success(res, 200, createdUser);
+            const createdUser = await userService.create(userData);
+            response.success(res, 200, { user: createdUser._id });
         } catch (err) {
             logger.error(err);
             response.error(res, 500, err.message);
