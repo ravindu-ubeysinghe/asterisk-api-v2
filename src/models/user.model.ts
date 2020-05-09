@@ -15,6 +15,7 @@ export type UserType = {
     };
     role?: 'SuperAdmin' | 'Admin' | 'SiteOwner' | 'Editor' | 'Customer';
     dateRegistered?: Date;
+    token?: string;
 };
 
 export interface IUserDocument extends Document, UserType {}
@@ -78,6 +79,9 @@ const userSchema = new db.Schema({
     dateRegistered: {
         type: Date,
         default: Date.now,
+    },
+    token: {
+        type: String,
     },
 });
 

@@ -1,47 +1,23 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
 import { check, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
+import isEmpty from 'lodash/isEmpty';
 import isAuthenticated from 'config/isAuthenticated';
 import isSuperAdmin from 'config/isSuperAdmin';
 import UserService from 'services/user.service';
-import User, { UserType } from 'models/user.model';
+import { UserType } from 'models/user.model';
 import response from 'utils/response';
-import logger from 'utils/logger';
-import { USER_ALREADY_EXISTS, USER_DOES_NOT_EXIST, INVALID_LOGIN, NO_ACCESS } from 'constants/user';
+import { filterOutFields } from 'utils/mongodb';
+import {
+    _400_USER_ALREADY_EXISTS,
+    _400_USER_DOES_NOT_EXIST,
+    _400_INVALID_LOGIN,
+    _403_NO_ACCESS,
+    _404_NOT_FOUND,
+} from 'constants/user';
 
 const router: Router = express.Router();
 const userService: UserService = new UserService();
-
-/**
- * Route: /api/users/
- * Get all users
- */
-router.get('/', isAuthenticated.isLoggedIn, isSuperAdmin, async (req: Request, res: Response) => {
-    try {
-        const users = await userService.get();
-        response.success(res, 200, users);
-    } catch (err) {
-        logger.error(err);
-        response.error(res, 500, err.message);
-    }
-});
-
-/**
- * Route: /api/users/id
- * Get a specific user
- */
-router.get('/:id', isAuthenticated.isLoggedIn, async (req: Request, res: Response) => {
-    // No type check below
-    // Checking if the user requesting === the user requested unless they are an admin
-    if (req.user != req.params.id) return response.error(res, 403, NO_ACCESS);
-    try {
-        const user = await userService.getById(req.params.id);
-        response.success(res, 200, user);
-    } catch (err) {
-        logger.error(err);
-        response.error(res, 500, err.message);
-    }
-});
 
 /**
  * Route: /api/users/login
@@ -57,16 +33,32 @@ router.post(
         if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
 
         const user = await userService.getByQuery({ email });
-        if (!user) return response.error(res, 400, USER_DOES_NOT_EXIST);
+        if (!user) return response.error(res, 400, _400_USER_DOES_NOT_EXIST);
 
         const validLogin = typeof user !== 'boolean' ? bcrypt.compareSync(password, user.password) : false;
-        if (!validLogin) return response.error(res, 401, INVALID_LOGIN);
+        if (!validLogin) return response.error(res, 401, _400_INVALID_LOGIN);
 
         // Generate JWT
-        const token = typeof user !== 'boolean' && userService.getJWT(user._id);
-        return response.success(res, 200, { user: token });
+        const token = typeof user !== 'boolean' ? await userService.generateJWT(user._id) : undefined;
+        res.set('Authorization', token);
+        return response.success(res, 200, { user: typeof user !== 'boolean' && user._id });
     },
 );
+
+/**
+ * Route: /api/users/logout
+ * Logs out a user
+ */
+
+router.post('/logout', isAuthenticated, async (req: Request, res: Response) => {
+    const { id }: any = req.user;
+    try {
+        await userService.invalidateJWT(id);
+        return response.success(res, 200);
+    } catch (err) {
+        return response.error(res, 500, err.message);
+    }
+});
 
 /**
  * Route: /api/users/register
@@ -100,7 +92,7 @@ router.post(
         if (!errors.isEmpty()) return response.error(res, 400, JSON.stringify(errors));
 
         const userAlreadyExists = await userService.getByQuery({ email, phone });
-        if (userAlreadyExists) return response.error(res, 400, USER_ALREADY_EXISTS);
+        if (userAlreadyExists) return response.error(res, 400, _400_USER_ALREADY_EXISTS);
 
         // TODO: Shouldn't be able to register with role 'SuperAdmin'
 
@@ -124,22 +116,52 @@ router.post(
             const createdUser = await userService.create(userData);
             return response.success(res, 200, { user: { _id: createdUser._id } });
         } catch (err) {
-            logger.error(err);
             return response.error(res, 500, err.message);
         }
     },
 );
 
 /**
+ * Route: /api/users/
+ * Get all users
+ */
+router.get('/', isAuthenticated, isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+        const users = filterOutFields(await userService.get(), ['password', 'token']);
+        if (isEmpty(users)) return response.success(res, 404, _404_NOT_FOUND);
+        response.success(res, 200, users);
+    } catch (err) {
+        response.error(res, 500, err.message);
+    }
+});
+
+/**
+ * Route: /api/users/id
+ * Get a specific user
+ */
+router.get('/:id', isAuthenticated, async (req: Request, res: Response) => {
+    // Checking if the user requesting === the user requested unless they are an admin
+    const { id, role }: any = req.user;
+    if (role !== 'Admin' && id != req.params.id) return response.error(res, 403, _403_NO_ACCESS);
+    try {
+        const user = await userService.getById(req.params.id);
+        if (!user) return response.error(res, 404, _404_NOT_FOUND);
+        const userFiltered = filterOutFields(user, ['password', 'token']);
+        response.success(res, 200, userFiltered);
+    } catch (err) {
+        response.error(res, 500, err.message);
+    }
+});
+
+/**
  * Route: /api/users/id
  * Delete all users (Only SuperAdmins are allowed)
  */
-router.delete('/{id}', isAuthenticated.isLoggedIn, async (req: Request, res: Response) => {
+router.delete('/{id}', isAuthenticated, async (req: Request, res: Response) => {
     try {
         await userService.delete(req.params.id);
         response.success(res, 200);
     } catch (err) {
-        logger.error(err);
         response.error(res, 500, err.message);
     }
 });
@@ -148,12 +170,11 @@ router.delete('/{id}', isAuthenticated.isLoggedIn, async (req: Request, res: Res
  * Route: /api/users/
  * Delete all users (Only SuperAdmins are allowed)
  */
-router.delete('/', isAuthenticated.isLoggedIn, isSuperAdmin, async (req: Request, res: Response) => {
+router.delete('/', isAuthenticated, isSuperAdmin, async (req: Request, res: Response) => {
     try {
         await userService.deleteAll();
         response.success(res, 200);
     } catch (err) {
-        logger.error(err);
         response.error(res, 500, err.message);
     }
 });

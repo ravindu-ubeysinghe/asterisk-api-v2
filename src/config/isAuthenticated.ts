@@ -1,30 +1,36 @@
-import passportJwt, { ExtractJwt } from 'passport-jwt';
+import { Request, Response, NextFunction } from 'express';
+import jwtSimple from 'jwt-simple';
 import UserService from 'services/user.service';
-import passport, { PassportStatic } from 'passport';
+import response from 'utils/response';
+import logger from 'utils/logger';
+import { _401_UNAUTHORIZED } from 'constants/user';
 
 const userService = new UserService();
 
-const isAuthenticated = (localPassport: PassportStatic) => {
-    localPassport.use(
-        new passportJwt.Strategy(
-            {
-                secretOrKey: process.env.SECRET,
-                jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            },
-            async (payload, done) => {
-                try {
-                    const user = await userService.getById(payload.user);
-                    if (user !== null) return done(null, { id: user._id, role: user.role });
+const isAuthenticated = async (req: Request, res: Response, next: NextFunction) => {
+    const tokenFromHeader = req.headers.authorization;
+    if (!tokenFromHeader || !process.env.SECRET) return response.error(res, 401, _401_UNAUTHORIZED);
 
-                    return done(null, false);
-                } catch (err) {
-                    return done(err, false);
-                }
-            },
-        ),
-    );
+    try {
+        const decoded = jwtSimple.decode(tokenFromHeader, process.env.SECRET);
+        if (!decoded) return response.error(res, 401, _401_UNAUTHORIZED);
+        try {
+            const user = await userService.getById(decoded.user);
+            // Check if the token provided is still valid by comparing it with the token saved in the database
+            if (user && user?.token === tokenFromHeader) {
+                req.user = { id: user._id, role: user.role };
+                return next();
+            }
+
+            return response.error(res, 401, _401_UNAUTHORIZED);
+        } catch (err) {
+            logger.error(err);
+            return response.error(res, 401, err);
+        }
+    } catch (err) {
+        logger.error(err);
+        return response.error(res, 401, err);
+    }
 };
-
-isAuthenticated.isLoggedIn = passport.authenticate('jwt', { session: false });
 
 export default isAuthenticated;

@@ -17,7 +17,7 @@ const connectToDb = () => {
         });
 };
 
-const boot = (app: Application) => {
+const startup = (app: Application) => {
     /** Invoke dotenv **/
     dotenv.config();
 
@@ -32,10 +32,6 @@ const boot = (app: Application) => {
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(bodyParser.json());
 
-    // Initialise passport and local config
-    app.use(passport.initialize());
-    isAuthenticated(passport);
-
     /** Mount the routes **/
     app.use(routes);
 
@@ -43,4 +39,4 @@ const boot = (app: Application) => {
     connectToDb();
 };
 
-export default boot;
+export default startup;

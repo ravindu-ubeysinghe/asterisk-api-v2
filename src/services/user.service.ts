@@ -9,7 +9,7 @@ import { userInfo } from 'os';
 class UserService implements Service<IUserDocument> {
     get = async (): Promise<IUserDocument[]> => {
         try {
-            return await User.find({}).select('-password');
+            return await User.find({});
         } catch (err) {
             logger.error(err);
             throw new Error(err.message);
@@ -18,7 +18,7 @@ class UserService implements Service<IUserDocument> {
 
     getById = async (id: string): Promise<IUserDocument | null> => {
         try {
-            return await User.findOne({ _id: id }).select('-password');
+            return await User.findOne({ _id: id });
         } catch (err) {
             logger.error(err);
             throw new Error(err.message);
@@ -71,7 +71,7 @@ class UserService implements Service<IUserDocument> {
         }
     };
 
-    getJWT = (id: string) => {
+    generateJWT = async (id: string): Promise<string | undefined> => {
         const today = new Date();
         const expiration = addDays(today, 1);
 
@@ -83,14 +83,27 @@ class UserService implements Service<IUserDocument> {
                 },
                 process.env.SECRET,
                 {
-                    expiresIn: '10h',
+                    expiresIn: process.env.SECRET_EXPIRY,
                 },
             );
 
-        return {
-            _id: id,
-            token: JWT,
-        };
+        try {
+            await User.updateOne({ _id: id }, { $set: { token: JWT } });
+            return JWT;
+        } catch (err) {
+            logger.error(err);
+            throw new Error(err.message);
+        }
+    };
+
+    invalidateJWT = async (id: string): Promise<boolean> => {
+        try {
+            await User.updateOne({ _id: id }, { $set: { token: undefined } });
+            return true;
+        } catch (err) {
+            logger.error(err);
+            throw new Error(err.message);
+        }
     };
 }
 

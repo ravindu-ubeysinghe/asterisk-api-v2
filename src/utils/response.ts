@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { GENERIC_ERROR } from 'constants/index';
+import { _500_GENERIC_ERROR } from 'constants/index';
 
 const response = () => {};
 
@@ -20,7 +20,7 @@ const success = (res: Response, status: number = 200, data?: any): void => {
  * @param message
  */
 const error = (res: Response, status: number = 200, error?: string): void => {
-    res.status(status).json({ isSuccess: false, status, error: error || GENERIC_ERROR });
+    res.status(status).json({ isSuccess: false, status, error: error || _500_GENERIC_ERROR });
 };
 
 response.error = error;
