@@ -1,6 +1,7 @@
-import express, { Router, Request, Response } from 'express';
+import express, { Router, Request, Response, NextFunction } from 'express';
 import { check, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
+import passport from 'passport';
 import UserService from 'services/user.service';
 import { UserType } from 'models/user.model';
 import response from 'utils/response';
@@ -14,7 +15,7 @@ const userService: UserService = new UserService();
  * Route: /api/users/
  * Get all users
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', passport.authenticate('jwt', { session: false }), async (req: Request, res: Response) => {
     try {
         const users = await userService.get();
         response.success(res, 200, users);
@@ -28,7 +29,7 @@ router.get('/', async (req: Request, res: Response) => {
  * Route: /api/users/id
  * Get a specific user
  */
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', passport.authenticate('jwt', { session: false }), async (req: Request, res: Response) => {
     try {
         const user = await userService.getById(req.params.id);
         response.success(res, 200, user);
@@ -57,7 +58,9 @@ router.post(
         const validLogin = typeof user !== 'boolean' ? bcrypt.compareSync(password, user.password) : false;
         if (!validLogin) return response.error(res, 401, INVALID_LOGIN);
 
-        response.success(res, 200, user);
+        // Generate JWT
+        const token = typeof user !== 'boolean' && userService.getJWT(user._id);
+        return response.success(res, 200, { user: token });
     },
 );
 
@@ -111,10 +114,10 @@ router.post(
 
         try {
             const createdUser = await userService.create(userData);
-            response.success(res, 200, { user: createdUser._id });
+            return response.success(res, 200, { user: { _id: createdUser._id } });
         } catch (err) {
             logger.error(err);
-            response.error(res, 500, err.message);
+            return response.error(res, 500, err.message);
         }
     },
 );
