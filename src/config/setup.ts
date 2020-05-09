@@ -6,7 +6,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import routes from 'routes';
 import passport from 'passport';
-import auth from 'config/auth';
+import isAuthenticated from 'config/isAuthenticated';
 import path from 'path';
 import { LoggerStream } from 'utils/logger';
 
@@ -32,11 +32,9 @@ const boot = (app: Application) => {
     app.use(bodyParser.urlencoded({ extended: false }));
     app.use(bodyParser.json());
 
-    app.use(express.static(path.join(__dirname, 'public')));
-    // process.env.SECRET &&
-    //     app.use(session({ secret: process.env.SECRET, cookie: { maxAge: 60000 }, resave: false, saveUninitialized: false }));
+    // Initialise passport and local config
     app.use(passport.initialize());
-    auth(passport);
+    isAuthenticated(passport);
 
     /** Mount the routes **/
     app.use(routes);

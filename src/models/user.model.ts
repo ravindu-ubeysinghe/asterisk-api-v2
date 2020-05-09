@@ -13,6 +13,7 @@ export type UserType = {
         state: string;
         country: string;
     };
+    role?: 'SuperAdmin' | 'Admin' | 'SiteOwner' | 'Editor' | 'Customer';
     dateRegistered?: Date;
 };
 
@@ -67,6 +68,12 @@ const userSchema = new db.Schema({
             type: String,
             required: true,
         },
+    },
+    role: {
+        type: String,
+        enum: ['SuperAdmin', 'Admin', 'SiteOwner', 'Editor', 'Customer'],
+        default: 'Customer',
+        required: true,
     },
     dateRegistered: {
         type: Date,

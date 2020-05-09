@@ -1,11 +1,11 @@
 import passportJwt, { ExtractJwt } from 'passport-jwt';
 import UserService from 'services/user.service';
-import { PassportStatic } from 'passport';
+import passport, { PassportStatic } from 'passport';
 
 const userService = new UserService();
 
-const auth = (passport: PassportStatic) => {
-    passport.use(
+const isAuthenticated = (localPassport: PassportStatic) => {
+    localPassport.use(
         new passportJwt.Strategy(
             {
                 secretOrKey: process.env.SECRET,
@@ -13,8 +13,8 @@ const auth = (passport: PassportStatic) => {
             },
             async (payload, done) => {
                 try {
-                    const user = await userService.getById(payload.sub);
-                    if (user !== null) return done(null, user);
+                    const user = await userService.getById(payload.user);
+                    if (user !== null) return done(null, { id: user._id, role: user.role });
 
                     return done(null, false);
                 } catch (err) {
@@ -25,4 +25,6 @@ const auth = (passport: PassportStatic) => {
     );
 };
 
-export default auth;
+isAuthenticated.isLoggedIn = passport.authenticate('jwt', { session: false });
+
+export default isAuthenticated;

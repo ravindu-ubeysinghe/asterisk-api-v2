@@ -4,6 +4,7 @@ import Service from './Service';
 import User, { IUserDocument, UserType } from 'models/user.model';
 import logger from 'utils/logger';
 import isEmpty from 'lodash/isEmpty';
+import { userInfo } from 'os';
 
 class UserService implements Service<IUserDocument> {
     get = async (): Promise<IUserDocument[]> => {
@@ -14,6 +15,7 @@ class UserService implements Service<IUserDocument> {
             throw new Error(err.message);
         }
     };
+
     getById = async (id: string): Promise<IUserDocument | null> => {
         try {
             return await User.findOne({ _id: id }).select('-password');
@@ -22,6 +24,7 @@ class UserService implements Service<IUserDocument> {
             throw new Error(err.message);
         }
     };
+
     getByQuery = async (query: Object): Promise<IUserDocument | boolean | null> => {
         let queryArr: Array<object> = [];
         for (let [key, value] of Object.entries(query)) {
@@ -48,6 +51,26 @@ class UserService implements Service<IUserDocument> {
         }
     };
 
+    delete = async (id: string): Promise<boolean> => {
+        try {
+            await User.deleteOne({ _id: id });
+            return true;
+        } catch (err) {
+            logger.error(err);
+            throw new Error(err.message);
+        }
+    };
+
+    deleteAll = async (): Promise<boolean> => {
+        try {
+            await User.deleteMany({});
+            return true;
+        } catch (err) {
+            logger.error(err);
+            throw new Error(err.message);
+        }
+    };
+
     getJWT = (id: string) => {
         const today = new Date();
         const expiration = addDays(today, 1);
@@ -56,11 +79,12 @@ class UserService implements Service<IUserDocument> {
             process.env.SECRET &&
             jwt.sign(
                 {
-                    sub: id,
-                    iat: Math.round(today.getTime() / 1000),
-                    exp: Math.round(expiration.getTime() / 1000),
+                    user: id,
                 },
                 process.env.SECRET,
+                {
+                    expiresIn: '10h',
+                },
             );
 
         return {

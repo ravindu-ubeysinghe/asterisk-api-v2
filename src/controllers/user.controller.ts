@@ -1,12 +1,13 @@
 import express, { Router, Request, Response, NextFunction } from 'express';
 import { check, validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
-import passport from 'passport';
+import isAuthenticated from 'config/isAuthenticated';
+import isSuperAdmin from 'config/isSuperAdmin';
 import UserService from 'services/user.service';
-import { UserType } from 'models/user.model';
+import User, { UserType } from 'models/user.model';
 import response from 'utils/response';
 import logger from 'utils/logger';
-import { USER_ALREADY_EXISTS, USER_DOES_NOT_EXIST, INVALID_LOGIN } from 'constants/user';
+import { USER_ALREADY_EXISTS, USER_DOES_NOT_EXIST, INVALID_LOGIN, NO_ACCESS } from 'constants/user';
 
 const router: Router = express.Router();
 const userService: UserService = new UserService();
@@ -15,7 +16,7 @@ const userService: UserService = new UserService();
  * Route: /api/users/
  * Get all users
  */
-router.get('/', passport.authenticate('jwt', { session: false }), async (req: Request, res: Response) => {
+router.get('/', isAuthenticated.isLoggedIn, isSuperAdmin, async (req: Request, res: Response) => {
     try {
         const users = await userService.get();
         response.success(res, 200, users);
@@ -29,7 +30,10 @@ router.get('/', passport.authenticate('jwt', { session: false }), async (req: Re
  * Route: /api/users/id
  * Get a specific user
  */
-router.get('/:id', passport.authenticate('jwt', { session: false }), async (req: Request, res: Response) => {
+router.get('/:id', isAuthenticated.isLoggedIn, async (req: Request, res: Response) => {
+    // No type check below
+    // Checking if the user requesting === the user requested unless they are an admin
+    if (req.user != req.params.id) return response.error(res, 403, NO_ACCESS);
     try {
         const user = await userService.getById(req.params.id);
         response.success(res, 200, user);
@@ -88,6 +92,7 @@ router.post(
             email,
             password,
             phone,
+            role,
             address: { streetOne, streetTwo, city, postcode, state, country },
         } = req.body;
 
@@ -96,6 +101,8 @@ router.post(
 
         const userAlreadyExists = await userService.getByQuery({ email, phone });
         if (userAlreadyExists) return response.error(res, 400, USER_ALREADY_EXISTS);
+
+        // TODO: Shouldn't be able to register with role 'SuperAdmin'
 
         const userData: UserType = {
             name: name,
@@ -110,6 +117,7 @@ router.post(
                 state: state,
                 country: country,
             },
+            role: role,
         };
 
         try {
@@ -121,5 +129,33 @@ router.post(
         }
     },
 );
+
+/**
+ * Route: /api/users/id
+ * Delete all users (Only SuperAdmins are allowed)
+ */
+router.delete('/{id}', isAuthenticated.isLoggedIn, async (req: Request, res: Response) => {
+    try {
+        await userService.delete(req.params.id);
+        response.success(res, 200);
+    } catch (err) {
+        logger.error(err);
+        response.error(res, 500, err.message);
+    }
+});
+
+/**
+ * Route: /api/users/
+ * Delete all users (Only SuperAdmins are allowed)
+ */
+router.delete('/', isAuthenticated.isLoggedIn, isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+        await userService.deleteAll();
+        response.success(res, 200);
+    } catch (err) {
+        logger.error(err);
+        response.error(res, 500, err.message);
+    }
+});
 
 export default router;
