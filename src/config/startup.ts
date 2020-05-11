@@ -5,9 +5,6 @@ import morgan from 'morgan';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import routes from 'routes';
-import passport from 'passport';
-import isAuthenticated from 'config/isAuthenticated';
-import path from 'path';
 import { LoggerStream } from 'utils/logger';
 
 const connectToDb = () => {

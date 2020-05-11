@@ -1,4 +1,4 @@
-import { addDays } from 'date-fns';
+import { addDays, addMinutes } from 'date-fns';
 import jwt from 'jsonwebtoken';
 import Service from './Service';
 import User, { IUserDocument, UserType } from 'models/user.model';
@@ -73,18 +73,16 @@ class UserService implements Service<IUserDocument> {
 
     generateJWT = async (id: string): Promise<string | undefined> => {
         const today = new Date();
-        const expiration = addDays(today, 1);
+        const expiration = addMinutes(today, parseInt(process.env.SECRET_EXPIRY || '60'));
 
         const JWT =
             process.env.SECRET &&
             jwt.sign(
                 {
                     user: id,
+                    exp: expiration.getTime(),
                 },
                 process.env.SECRET,
-                {
-                    expiresIn: process.env.SECRET_EXPIRY,
-                },
             );
 
         try {
